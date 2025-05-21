@@ -9,7 +9,7 @@ app = FastAPI()
 # CORSを有効化（すべてのオリジンからのアクセスを許可）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 本番環境では適切に制限してください
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -65,3 +65,8 @@ async def execute_python(request: ExecuteRequest):
 @app.get("/test")
 async def test():
     return {"status": "success", "message": "API is working!"}
+
+# ルートエンドポイント（ブラウザからのアクセス確認用）
+@app.get("/")
+async def root():
+    return {"message": "電気設備設計自動化 Python API サーバー稼働中"}
