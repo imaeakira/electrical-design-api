@@ -8,14 +8,13 @@ import os
 
 app = FastAPI()
 
-# CORSを有効化（すべてのオリジンからのアクセスを許可）
+# CORSを有効化（APPからのアクセスを許可）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://electrical-design-app.web.app", "https://electrical-design-app.firebaseapp.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],  # すべてのヘッダーを公開
 )
 
 # 静的ファイルの配信設定
