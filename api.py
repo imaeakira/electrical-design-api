@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import json
 import traceback
+import os
 
 app = FastAPI()
 
@@ -13,7 +15,14 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],  # すべてのヘッダーを公開
 )
+
+# 静的ファイルの配信設定
+try:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+except:
+    print("静的ファイルディレクトリが見つかりません")
 
 # リクエスト用モデル
 class ExecuteRequest(BaseModel):
@@ -61,10 +70,16 @@ async def execute_python(request: ExecuteRequest):
             "traceback": traceback.format_exc()
         }
 
-# テスト用のエンドポイント
+# テスト用のエンドポイント - OPTIONS対応
+@app.options("/test")
 @app.get("/test")
 async def test():
     return {"status": "success", "message": "API is working!"}
+
+# 実行エンドポイントにもOPTIONSを追加
+@app.options("/execute")
+async def options_execute():
+    return {}
 
 # ルートエンドポイント（ブラウザからのアクセス確認用）
 @app.get("/")
