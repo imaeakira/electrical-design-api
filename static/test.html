@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API接続テスト</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>電気設備設計自動化 API接続テスト</h1>
+    <p>このページはAPIサーバーの動作確認用です。</p>
+    
+    <h2>1. 基本接続テスト</h2>
+    <button id="testBtn">API接続テスト</button>
+    <p id="result">結果: </p>
+    
+    <h2>2. CORS対応確認</h2>
+    <p>以下のURLからArtifacts側から接続できることを確認してください:</p>
+    <pre>https://electrical-design-api.onrender.com</pre>
+    
+    <h2>3. トラブルシューティング</h2>
+    <ul>
+        <li>ブラウザの開発者ツール（F12）でネットワークタブを開き、リクエストとレスポンスを確認</li>
+        <li>CORSエラーが発生する場合は、Access-Control-Allow-Originヘッダーを確認</li>
+        <li>Artifactsとの連携ではHTTPSプロトコルが必須</li>
+    </ul>
+
+    <script>
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            try {
+                document.getElementById('result').textContent = '接続中...';
+                
+                const response = await fetch('/test', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                document.getElementById('result').textContent = '結果: ' + JSON.stringify(data);
+            } catch (err) {
+                document.getElementById('result').textContent = 'エラー: ' + err.message;
+                console.error(err);
+            }
+        });
+    </script>
+</body>
+</html>
