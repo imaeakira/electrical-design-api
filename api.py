@@ -1,8 +1,10 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import json
 import traceback
+import os
 
 # 標準ライブラリのインポート
 import math
@@ -34,6 +36,7 @@ import textwrap
 import pprint
 
 # typing関連
+import typing
 from typing import (
     List, Dict, Any, Tuple, Optional, Union, Set, FrozenSet,
     Callable, Iterator, Iterable, Sequence, Mapping, MutableMapping,
@@ -56,14 +59,20 @@ from enum import Enum, IntEnum, Flag, IntFlag, auto
 
 app = FastAPI()
 
-# CORSを有効化（すべてのオリジンからのアクセスを許可）
+# CORSを有効化（APPからのアクセスを許可）
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://electrical-design-app.web.app", "https://electrical-design-app.firebaseapp.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 静的ファイルの配信設定
+try:
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+except:
+    print("静的ファイルディレクトリが見つかりません")
 
 # リクエスト用モデル
 class ExecuteRequest(BaseModel):
@@ -74,9 +83,34 @@ class ExecuteRequest(BaseModel):
 async def execute_python(request: ExecuteRequest):
     try:
         # コードの安全な実行環境を作成
+        # 安全な組み込み関数のみを選択
+        safe_builtins = {
+            # 基本的な型と関数
+            'abs': abs, 'all': all, 'any': any, 'bool': bool,
+            'bytes': bytes, 'chr': chr, 'complex': complex,
+            'dict': dict, 'divmod': divmod, 'enumerate': enumerate,
+            'filter': filter, 'float': float, 'format': format,
+            'frozenset': frozenset, 'hash': hash, 'hex': hex,
+            'int': int, 'isinstance': isinstance, 'issubclass': issubclass,
+            'iter': iter, 'len': len, 'list': list, 'map': map,
+            'max': max, 'min': min, 'next': next, 'oct': oct,
+            'ord': ord, 'pow': pow, 'print': print, 'range': range,
+            'repr': repr, 'reversed': reversed, 'round': round,
+            'set': set, 'slice': slice, 'sorted': sorted, 'str': str,
+            'sum': sum, 'tuple': tuple, 'type': type, 'zip': zip,
+            # 安全な例外クラス
+            'Exception': Exception, 'ValueError': ValueError,
+            'TypeError': TypeError, 'KeyError': KeyError,
+            'IndexError': IndexError, 'AttributeError': AttributeError,
+            'ZeroDivisionError': ZeroDivisionError,
+            # その他の安全な組み込み
+            'None': None, 'True': True, 'False': False,
+            'NotImplemented': NotImplemented,
+        }
+        
         # 電気設備設計で使用可能な標準ライブラリを含むグローバル環境
         global_env = {
-            "__builtins__": __builtins__,
+            "__builtins__": safe_builtins,
             
             # 数学・計算関連
             "math": math,
@@ -140,7 +174,8 @@ async def execute_python(request: ExecuteRequest):
             "warnings": warnings,
             
             # typing関連のすべて
-            "typing": __import__("typing"),
+            # __import__は削除（セキュリティのため）
+            "typing": typing,
             "List": List,
             "Dict": Dict,
             "Any": Any,
@@ -209,10 +244,16 @@ async def execute_python(request: ExecuteRequest):
             "traceback": traceback.format_exc()
         }
 
-# テスト用のエンドポイント
+# テスト用のエンドポイント - OPTIONS対応
+@app.options("/test")
 @app.get("/test")
 async def test():
     return {"status": "success", "message": "API is working!"}
+
+# 実行エンドポイントにもOPTIONSを追加
+@app.options("/execute")
+async def options_execute():
+    return {}
 
 # 利用可能なライブラリ一覧を返すエンドポイント
 @app.get("/available-libraries")
@@ -223,9 +264,9 @@ async def available_libraries():
             "math": "数学関数（sin, cos, sqrt, pi等）",
             "decimal": "十進演算（高精度計算）",
             "fractions": "分数演算",
-            "statistics": "統計関数",
+            "statistics": "統計関数（平均、標準偏差等）",
             "random": "乱数生成",
-            "itertools": "効率的なループ処理",
+            "itertools": "効率的なループ処理（組み合わせ、順列等）",
             "collections": "特殊なコンテナデータ型",
             "functools": "関数型プログラミングツール",
             "datetime": "日付と時刻の操作",
@@ -234,7 +275,21 @@ async def available_libraries():
             "enum": "列挙型",
             "dataclasses": "データクラス",
             "typing": "型ヒント（完全対応）",
-            "その他": "copy, uuid, hashlib, base64等"
+            "copy": "オブジェクトのコピー",
+            "uuid": "UUID生成",
+            "hashlib": "ハッシュ関数",
+            "base64": "Base64エンコード/デコード",
+            "その他": "heapq, bisect, array, pprint等"
+        },
+        "使用例": {
+            "面積計算": "math.pi * radius ** 2",
+            "座標計算": "math.sqrt((x2-x1)**2 + (y2-y1)**2)",
+            "組み合わせ": "list(itertools.combinations(items, 2))",
+            "型ヒント": "def calculate(points: List[Tuple[float, float]]) -> float:"
+        },
+        "セキュリティ": {
+            "利用不可": "os, sys, subprocess, socket, urllib等のシステム操作・ネットワーク関連",
+            "制限事項": "ファイル操作、外部通信、システムコマンド実行は不可"
         }
     }
 
